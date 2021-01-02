@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"io"
 )
 
 func printSpaces(depth int) string {
@@ -15,7 +16,7 @@ func remove(slice []os.FileInfo, ind int) []os.FileInfo {
 	return append(slice[:ind], slice[ind + 1:]...)
 }
 
-func printDir(outf *os.File, path string, printFiles bool, depth int, pref string) error {
+func printDir(outf io.Writer, path string, printFiles bool, depth int, pref string) error {
 	files, err := ioutil.ReadDir(path)
 
 	if printFiles == false {
@@ -40,10 +41,10 @@ func printDir(outf *os.File, path string, printFiles bool, depth int, pref strin
 		// println("[DBG] files ", len(files))
 		if i == len(files) - 1 {
 			symb = "└───"
-			newpref = "    "
+			newpref = "\t"
 		} else {
 			symb = "├───"
-			newpref = "│   "
+			newpref = "│\t"
 		}
 
 		// fmt.Printf("Curr file %d: %s\n", i, file.Name())
@@ -51,7 +52,12 @@ func printDir(outf *os.File, path string, printFiles bool, depth int, pref strin
 		
 		// println("[DBG] Curr file: ", file.Name(), file.IsDir())
 		if printFiles && !file.IsDir() {
-			fmt.Fprintf(outf, "%s%s%s (%db)\n", pref, symb, file.Name(), file.Size())
+			fmt.Fprintf(outf, "%s%s%s", pref, symb, file.Name())
+			if (file.Size() > 0) {
+				fmt.Fprintf(outf, " (%db)\n", file.Size())
+			} else {
+				fmt.Fprintln(outf, " (empty)")
+			}
 		} else if file.IsDir() {
 			fmt.Fprintf(outf, "%s%s%s\n", pref, symb, file.Name())
 			printDir(outf, path + string(os.PathSeparator) + file.Name(), printFiles, depth + 1, pref + newpref)
@@ -61,7 +67,7 @@ func printDir(outf *os.File, path string, printFiles bool, depth int, pref strin
 	return nil
 }
 
-func dirTree(outf *os.File, path string, printFiles bool) error {
+func dirTree(outf io.Writer, path string, printFiles bool) error {
 	return printDir(outf, path, printFiles, 0, "")
 }
 
